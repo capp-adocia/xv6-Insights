@@ -11,33 +11,32 @@ static void mpmain(void)  __attribute__((noreturn));
 extern pde_t *kpgdir;
 extern char end[]; // first address after kernel loaded from ELF file
 
-// Bootstrap processor starts running C code here.
-// Allocate a real stack and switch to it, first
-// doing some setup required for memory allocator to work.
-int
-main(void)
+// 引导处理器从这里开始运行 C 代码。
+// 首先分配一个真实的栈并切换到它，
+// 同时进行内存分配器运行所需的一些设置。
+int main(void)
 {
-  kinit1(end, P2V(4*1024*1024)); // phys page allocator
-  kvmalloc();      // kernel page table
-  mpinit();        // detect other processors
-  lapicinit();     // interrupt controller
-  seginit();       // segment descriptors
-  picinit();       // disable pic
-  ioapicinit();    // another interrupt controller
-  consoleinit();   // console hardware
-  uartinit();      // serial port
-  pinit();         // process table
-  tvinit();        // trap vectors
-  binit();         // buffer cache
-  fileinit();      // file table
-  ideinit();       // disk 
-  startothers();   // start other processors
-  kinit2(P2V(4*1024*1024), P2V(PHYSTOP)); // must come after startothers()
-  userinit();      // first user process
-  mpmain();        // finish this processor's setup
+  kinit1(end, P2V(4*1024*1024)); // 物理页分配器
+  kvmalloc();      // 内核页表
+  mpinit();        // 检测其他处理器
+  lapicinit();     // 中断控制器
+  seginit();       // 段描述符
+  picinit();       // 禁用PIC
+  ioapicinit();    // 另一个中断控制器
+  consoleinit();   // 控制台硬件
+  uartinit();      // 串口
+  pinit();         // 进程表
+  tvinit();        // 陷阱向量
+  binit();         // 缓冲区缓存
+  fileinit();      // 文件表
+  ideinit();       // 磁盘
+  startothers();   // 启动其他处理器
+  kinit2(P2V(4*1024*1024), P2V(PHYSTOP)); // 必须在startothers()之后调用
+  userinit();      // 第一个用户进程
+  mpmain();        // 完成本处理器的设置
 }
 
-// Other CPUs jump here from entryother.S.
+// 其他 CPU 从 entryother.S 跳转到这里。
 static void
 mpenter(void)
 {
@@ -47,9 +46,8 @@ mpenter(void)
   mpmain();
 }
 
-// Common CPU setup code.
-static void
-mpmain(void)
+// 常见的 CPU 初始化代码。
+static void mpmain(void)
 {
   cprintf("cpu%d: starting %d\n", cpuid(), cpuid());
   idtinit();       // load idt register
@@ -59,18 +57,16 @@ mpmain(void)
 
 pde_t entrypgdir[];  // For entry.S
 
-// Start the non-boot (AP) processors.
-static void
-startothers(void)
+// 启动非引导（AP）处理器。
+static void startothers(void)
 {
   extern uchar _binary_entryother_start[], _binary_entryother_size[];
   uchar *code;
   struct cpu *c;
   char *stack;
 
-  // Write entry code to unused memory at 0x7000.
-  // The linker has placed the image of entryother.S in
-  // _binary_entryother_start.
+  // 将入口代码写入未使用的内存地址 0x7000。
+  // 链接器已将 entryother.S 的镜像放置在 _binary_entryother_start。
   code = P2V(0x7000);
   memmove(code, _binary_entryother_start, (uint)_binary_entryother_size);
 
@@ -94,14 +90,14 @@ startothers(void)
   }
 }
 
-// The boot page table used in entry.S and entryother.S.
-// Page directories (and page tables) must start on page boundaries,
-// hence the __aligned__ attribute.
-// PTE_PS in a page directory entry enables 4Mbyte pages.
+// boot 页面表在 entry.S 和 entryother.S 中使用。
+// 页目录（和页表）必须从页面边界开始，
+// 因此使用了 __aligned__ 属性。
+// 页目录项中的 PTE_PS 启用 4M 字节页面。
 
 __attribute__((__aligned__(PGSIZE)))
 pde_t entrypgdir[NPDENTRIES] = {
-  // Map VA's [0, 4MB) to PA's [0, 4MB)
+  // 将 VA 的 [0, 4MB) 映射到 PA 的 [0, 4MB)
   [0] = (0) | PTE_P | PTE_W | PTE_PS,
   // Map VA's [KERNBASE, KERNBASE+4MB) to PA's [0, 4MB)
   [KERNBASE>>PDXSHIFT] = (0) | PTE_P | PTE_W | PTE_PS,

@@ -1,5 +1,5 @@
-/* Simple linker script for the JOS kernel.
-   See the GNU ld 'info' manual ("info ld") to learn the syntax. */
+/* JOS 内核的简单链接脚本。
+   查看 GNU ld 'info' 手册（"info ld"）以了解语法。 */
 
 OUTPUT_FORMAT("elf32-i386", "elf32-i386", "elf32-i386")
 OUTPUT_ARCH(i386)
@@ -7,7 +7,7 @@ ENTRY(_start)
 
 SECTIONS
 {
-	/* Link the kernel at this address: "." means the current address */
+	/* 将内核链接到此地址："." 表示当前地址 */
         /* Must be equal to KERNLINK */
 	. = 0x80100000;
 
@@ -21,7 +21,7 @@ SECTIONS
 		*(.rodata .rodata.* .gnu.linkonce.r.*)
 	}
 
-	/* Include debugging information in kernel memory */
+	/* 在内核内存中包含调试信息 */
 	.stab : {
 		PROVIDE(__STAB_BEGIN__ = .);
 		*(.stab);
@@ -37,12 +37,8 @@ SECTIONS
 	/* Adjust the address for the data segment to the next page */
 	. = ALIGN(0x1000);
 
-	/* Conventionally, Unix linkers provide pseudo-symbols
-	 * etext, edata, and end, at the end of the text, data, and bss.
-	 * For the kernel mapping, we need the address at the beginning
-	 * of the data section, but that's not one of the conventional
-	 * symbols, because the convention started before there was a
-	 * read-only rodata section between text and data. */
+	/* 传统上，Unix 链接器在文本段、数据段和 BSS 段的末尾提供伪符号 etext、edata 和 end。
+	/* 对于内核映射，我们需要数据段开始的地址，但那不是传统符号之一，因为在文本段和数据段之间有只读的 rodata 段之前，这种惯例就已经存在了。 */
 	PROVIDE(data = .);
 
 	/* The data segment */

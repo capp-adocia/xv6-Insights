@@ -7,20 +7,20 @@
 #include "proc.h"
 #include "elf.h"
 
-extern char data[];  // defined by kernel.ld
+// 在kernel.ld链接器中定义(.data)
+extern char data[];
 pde_t *kpgdir;  // for use in scheduler()
 
-// Set up CPU's kernel segment descriptors.
-// Run once on entry on each CPU.
-void
-seginit(void)
+// 设置 CPU 的内核段描述符。
+// 在每个 CPU 上进入时运行一次。
+void seginit(void)
 {
   struct cpu *c;
 
-  // Map "logical" addresses to virtual addresses using identity map.
-  // Cannot share a CODE descriptor for both kernel and user
-  // because it would have to have DPL_USR, but the CPU forbids
-  // an interrupt from CPL=0 to DPL=3.
+  // 使用映射表将“逻辑”地址映射到虚拟地址。
+  // 无法为内核和用户共享 CODE 描述符
+  // 因为它必须具有 DPL_USR，但 CPU 禁止
+  // 从 CPL=0 到 DPL=3 的中断。
   c = &cpus[cpuid()];
   c->gdt[SEG_KCODE] = SEG(STA_X|STA_R, 0, 0xffffffff, 0);
   c->gdt[SEG_KDATA] = SEG(STA_W, 0, 0xffffffff, 0);
@@ -29,9 +29,8 @@ seginit(void)
   lgdt(c->gdt, sizeof(c->gdt));
 }
 
-// Return the address of the PTE in page table pgdir
-// that corresponds to virtual address va.  If alloc!=0,
-// create any required page table pages.
+// 返回页表 pgdir 中对应虚拟地址 va 的 PTE 的地址。如果 alloc!=0，
+// 则创建任何所需的页表页。
 static pte_t *
 walkpgdir(pde_t *pgdir, const void *va, int alloc)
 {
@@ -192,8 +191,7 @@ inituvm(pde_t *pgdir, char *init, uint sz)
   memmove(mem, init, sz);
 }
 
-// Load a program segment into pgdir.  addr must be page-aligned
-// and the pages from addr to addr+sz must already be mapped.
+// 将程序段加载到 pgdir 中。addr 必须是页对齐的，并且从 addr 到 addr+sz 的页面必须已映射。
 int
 loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz)
 {
@@ -216,10 +214,8 @@ loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz)
   return 0;
 }
 
-// Allocate page tables and physical memory to grow process from oldsz to
-// newsz, which need not be page aligned.  Returns new size or 0 on error.
-int
-allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
+// 分配页表和物理内存，将进程从 oldsz 扩展到 newsz，newsz 不需要对齐到页。返回新大小，出错时返回 0。
+int allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 {
   char *mem;
   uint a;

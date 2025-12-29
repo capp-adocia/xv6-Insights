@@ -39,7 +39,7 @@ struct segdesc {
   uint base_31_24 : 8; // High bits of segment base address
 };
 
-// Normal segment
+// 正常段
 #define SEG(type, base, lim, dpl) (struct segdesc)    \
 { ((lim) >> 12) & 0xffff, (uint)(base) & 0xffff,      \
   ((uint)(base) >> 16) & 0xff, type, 1, dpl, 1,       \
@@ -94,7 +94,8 @@ struct segdesc {
 #define PTE_P           0x001   // Present
 #define PTE_W           0x002   // Writeable
 #define PTE_U           0x004   // User
-#define PTE_PS          0x080   // Page Size
+// 这里设置的是启用4MB的大页，不同于平常我们使用的4KB标准页，开始阶段用的临时页表用这个简单又够用，如果设置为0代表用标准4KB页
+#define PTE_PS          0x080   // Page Size 
 
 // Address in page table or page directory entry
 #define PTE_ADDR(pte)   ((uint)(pte) & ~0xFFF)

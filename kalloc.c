@@ -23,48 +23,41 @@ struct {
   struct run *freelist;
 } kmem;
 
-// Initialization happens in two phases.
-// 1. main() calls kinit1() while still using entrypgdir to place just
-// the pages mapped by entrypgdir on free list.
-// 2. main() calls kinit2() with the rest of the physical pages
-// after installing a full page table that maps them on all cores.
-void
-kinit1(void *vstart, void *vend)
+// 初始化分两个阶段进行。
+// 1. main() 调用 kinit1()，同时仍使用 entrypgdir 将 entrypgdir 映射的页面放入空闲列表。
+// 2. main() 调用 kinit2()，在为所有核心安装了完整的页表以映射剩余物理页面后进行。
+void kinit1(void *vstart, void *vend)
 {
   initlock(&kmem.lock, "kmem");
   kmem.use_lock = 0;
   freerange(vstart, vend);
 }
 
-void
-kinit2(void *vstart, void *vend)
+void kinit2(void *vstart, void *vend)
 {
   freerange(vstart, vend);
   kmem.use_lock = 1;
 }
 
-void
-freerange(void *vstart, void *vend)
+void freerange(void *vstart, void *vend)
 {
   char *p;
   p = (char*)PGROUNDUP((uint)vstart);
   for(; p + PGSIZE <= (char*)vend; p += PGSIZE)
     kfree(p);
 }
+
 //PAGEBREAK: 21
-// Free the page of physical memory pointed at by v,
-// which normally should have been returned by a
-// call to kalloc().  (The exception is when
-// initializing the allocator; see kinit above.)
-void
-kfree(char *v)
+// 释放由 v 指向的物理内存页，
+// 通常应通过调用 kalloc() 返回。（例外情况是在初始化分配器时；见上面的 kinit。）
+void kfree(char *v)
 {
   struct run *r;
 
   if((uint)v % PGSIZE || v < end || V2P(v) >= PHYSTOP)
     panic("kfree");
 
-  // Fill with junk to catch dangling refs.
+  // 填充垃圾以捕获悬空引用。
   memset(v, 1, PGSIZE);
 
   if(kmem.use_lock)

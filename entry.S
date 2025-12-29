@@ -41,7 +41,7 @@ _start = V2P_WO(entry)
 # 在启动处理器上进入 xv6，分页功能关闭。
 .globl entry
 entry:
-  # Turn on page size extension for 4Mbyte pages
+  # 为4兆字节页面启用页面大小扩展
   movl    %cr4, %eax
   orl     $(CR4_PSE), %eax
   movl    %eax, %cr4
