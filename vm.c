@@ -31,8 +31,8 @@ void seginit(void)
 
 // 返回页表 pgdir 中对应虚拟地址 va 的 PTE 的地址。如果 alloc!=0，
 // 则创建任何所需的页表页。
-static pte_t *
-walkpgdir(pde_t *pgdir, const void *va, int alloc)
+// 这里会设置页目录项，返回页表项
+static pte_t * walkpgdir(pde_t *pgdir, const void *va, int alloc)
 {
   pde_t *pde;
   pte_t *pgtab;
@@ -53,11 +53,8 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
   return &pgtab[PTX(va)];
 }
 
-// Create PTEs for virtual addresses starting at va that refer to
-// physical addresses starting at pa. va and size might not
-// be page-aligned.
-static int
-mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
+// 为从 va 开始的虚拟地址创建指向从 pa 开始的物理地址的 PTE。va 和大小可能不是页对齐的。
+static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 {
   char *a, *last;
   pte_t *pte;
@@ -114,8 +111,7 @@ static struct kmap {
 };
 
 // Set up kernel part of a page table.
-pde_t*
-setupkvm(void)
+pde_t* setupkvm(void)
 {
   pde_t *pgdir;
   struct kmap *k;
@@ -134,10 +130,8 @@ setupkvm(void)
   return pgdir;
 }
 
-// Allocate one page table for the machine for the kernel address
-// space for scheduler processes.
-void
-kvmalloc(void)
+// 为调度器进程的内核地址空间为机器分配一个页表。
+void kvmalloc(void)
 {
   kpgdir = setupkvm();
   switchkvm();
@@ -145,15 +139,13 @@ kvmalloc(void)
 
 // Switch h/w page table register to the kernel-only page table,
 // for when no process is running.
-void
-switchkvm(void)
+void switchkvm(void)
 {
   lcr3(V2P(kpgdir));   // switch to the kernel page table
 }
 
-// Switch TSS and h/w page table to correspond to process p.
-void
-switchuvm(struct proc *p)
+// 切换 TSS 和硬件页表以对应进程 p。
+void switchuvm(struct proc *p)
 {
   if(p == 0)
     panic("switchuvm: no process");
@@ -163,23 +155,26 @@ switchuvm(struct proc *p)
     panic("switchuvm: no pgdir");
 
   pushcli();
+  // 这里xv6用的是多核，每一个cpu都有不同的tss，所以要在这里更新tss，否则直接写死就好了
   mycpu()->gdt[SEG_TSS] = SEG16(STS_T32A, &mycpu()->ts,
                                 sizeof(mycpu()->ts)-1, 0);
   mycpu()->gdt[SEG_TSS].s = 0;
+
   mycpu()->ts.ss0 = SEG_KDATA << 3;
-  mycpu()->ts.esp0 = (uint)p->kstack + KSTACKSIZE;
-  // setting IOPL=0 in eflags *and* iomb beyond the tss segment limit
-  // forbids I/O instructions (e.g., inb and outb) from user space
+  mycpu()->ts.esp0 = (uint)p->kstack + KSTACKSIZE; // 这里设置了内核栈顶指针
+  // 在 eflags 中设置 IOPL=0 并且 iomb 超出 TSS 段限制
+  // 会禁止用户空间执行 I/O 指令（例如 inb 和 outb）用户不能打印字符，读取字符
   mycpu()->ts.iomb = (ushort) 0xFFFF;
+
   ltr(SEG_TSS << 3);
-  lcr3(V2P(p->pgdir));  // switch to process's address space
+
+  lcr3(V2P(p->pgdir));  // 切换到进程的地址空间
   popcli();
 }
 
-// Load the initcode into address 0 of pgdir.
-// sz must be less than a page.
-void
-inituvm(pde_t *pgdir, char *init, uint sz)
+// 将 initcode 加载到 pgdir 的地址 0。(这里pgdir是进程p的pgdir)
+// sz 必须小于一页。
+void inituvm(pde_t *pgdir, char *init, uint sz)
 {
   char *mem;
 
@@ -188,12 +183,11 @@ inituvm(pde_t *pgdir, char *init, uint sz)
   mem = kalloc();
   memset(mem, 0, PGSIZE);
   mappages(pgdir, 0, PGSIZE, V2P(mem), PTE_W|PTE_U);
-  memmove(mem, init, sz);
+  memmove(mem, init, sz); // 将init所在的数据移动到分配到的这页上来
 }
 
 // 将程序段加载到 pgdir 中。addr 必须是页对齐的，并且从 addr 到 addr+sz 的页面必须已映射。
-int
-loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz)
+int loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz)
 {
   uint i, pa, n;
   pte_t *pte;
@@ -248,8 +242,7 @@ int allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 // newsz.  oldsz and newsz need not be page-aligned, nor does newsz
 // need to be less than oldsz.  oldsz can be larger than the actual
 // process size.  Returns the new process size.
-int
-deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
+int deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 {
   pte_t *pte;
   uint a, pa;
@@ -276,8 +269,7 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 
 // Free a page table and all the physical memory pages
 // in the user part.
-void
-freevm(pde_t *pgdir)
+void freevm(pde_t *pgdir)
 {
   uint i;
 
@@ -295,8 +287,7 @@ freevm(pde_t *pgdir)
 
 // Clear PTE_U on a page. Used to create an inaccessible
 // page beneath the user stack.
-void
-clearpteu(pde_t *pgdir, char *uva)
+void clearpteu(pde_t *pgdir, char *uva)
 {
   pte_t *pte;
 
@@ -308,8 +299,7 @@ clearpteu(pde_t *pgdir, char *uva)
 
 // Given a parent process's page table, create a copy
 // of it for a child.
-pde_t*
-copyuvm(pde_t *pgdir, uint sz)
+pde_t* copyuvm(pde_t *pgdir, uint sz)
 {
   pde_t *d;
   pte_t *pte;
@@ -342,8 +332,7 @@ bad:
 
 //PAGEBREAK!
 // Map user virtual address to kernel address.
-char*
-uva2ka(pde_t *pgdir, char *uva)
+char* uva2ka(pde_t *pgdir, char *uva)
 {
   pte_t *pte;
 
@@ -358,8 +347,7 @@ uva2ka(pde_t *pgdir, char *uva)
 // Copy len bytes from p to user address va in page table pgdir.
 // Most useful when pgdir is not the current page table.
 // uva2ka ensures this only works for PTE_U pages.
-int
-copyout(pde_t *pgdir, uint va, void *p, uint len)
+int copyout(pde_t *pgdir, uint va, void *p, uint len)
 {
   char *buf, *pa0;
   uint n, va0;

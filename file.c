@@ -16,8 +16,7 @@ struct {
   struct file file[NFILE];
 } ftable;
 
-void
-fileinit(void)
+void fileinit(void)
 {
   initlock(&ftable.lock, "ftable");
 }

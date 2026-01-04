@@ -117,8 +117,7 @@ sti(void)
   asm volatile("sti");
 }
 
-static inline uint
-xchg(volatile uint *addr, uint newval)
+static inline uint xchg(volatile uint *addr, uint newval)
 {
   uint result;
 
@@ -144,9 +143,8 @@ lcr3(uint val)
   asm volatile("movl %0,%%cr3" : : "r" (val));
 }
 
-//PAGEBREAK: 36
-// Layout of the trap frame built on the stack by the
-// hardware and by trapasm.S, and passed to trap().
+//分页符: 36
+// 由硬件和 trapasm.S 在堆栈上创建的陷阱帧的布局，并传递给 trap()。
 struct trapframe {
   // registers as pushed by pusha
   uint edi;

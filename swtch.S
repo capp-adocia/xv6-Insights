@@ -1,10 +1,9 @@
-# Context switch
+# 上下文切换
 #
 #   void swtch(struct context **old, struct context *new);
-# 
-# Save the current registers on the stack, creating
-# a struct context, and save its address in *old.
-# Switch stacks to new and pop previously-saved registers.
+#
+# 将当前寄存器保存到栈上，创建一个 struct context，并将其地址保存在 *old。
+# 切换栈到 new 并弹出之前保存的寄存器。
 
 .globl swtch
 swtch:
@@ -26,4 +25,4 @@ swtch:
   popl %esi
   popl %ebx
   popl %ebp
-  ret
+  ret # 只有切换到新进程时才会跳转到forkret去执行，其余情况都是跳转到新进程的之前保存的eip

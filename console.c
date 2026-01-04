@@ -24,8 +24,7 @@ static struct {
   int locking;
 } cons;
 
-static void
-printint(int xx, int base, int sign)
+static void printint(int xx, int base, int sign)
 {
   static char digits[] = "0123456789abcdef";
   char buf[16];

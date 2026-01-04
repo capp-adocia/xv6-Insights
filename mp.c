@@ -15,8 +15,7 @@ struct cpu cpus[NCPU];
 int ncpu;
 uchar ioapicid;
 
-static uchar
-sum(uchar *addr, int len)
+static uchar sum(uchar *addr, int len)
 {
   int i, sum;
 
@@ -26,9 +25,8 @@ sum(uchar *addr, int len)
   return sum;
 }
 
-// Look for an MP structure in the len bytes at addr.
-static struct mp*
-mpsearch1(uint a, int len)
+// 在 addr 的 len 字节中查找 MP 结构。
+static struct mp* mpsearch1(uint a, int len)
 {
   uchar *e, *p, *addr;
 
@@ -40,11 +38,10 @@ mpsearch1(uint a, int len)
   return 0;
 }
 
-// Search for the MP Floating Pointer Structure, which according to the
-// spec is in one of the following three locations:
-// 1) in the first KB of the EBDA;
-// 2) in the last KB of system base memory;
-// 3) in the BIOS ROM between 0xE0000 and 0xFFFFF.
+// 搜索 MP 浮动指针结构，根据规范，它位于以下三个位置之一：
+// 1) EBDA 的第一个 KB；
+// 2) 系统基本内存的最后一个 KB；
+// 3) BIOS ROM 中的 0xE0000 到 0xFFFFF 区域。
 static struct mp*
 mpsearch(void)
 {
@@ -88,8 +85,7 @@ mpconfig(struct mp **pmp)
   return conf;
 }
 
-void
-mpinit(void)
+void mpinit(void)
 {
   uchar *p, *e;
   int ismp;

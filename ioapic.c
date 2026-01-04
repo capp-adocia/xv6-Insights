@@ -1,6 +1,6 @@
-// The I/O APIC manages hardware interrupts for an SMP system.
+// I/O APIC 管理 SMP 系统的硬件中断。
 // http://www.intel.com/design/chipsets/datashts/29056601.pdf
-// See also picirq.c.
+// 另见 picirq.c。
 
 #include "types.h"
 #include "defs.h"
@@ -45,8 +45,7 @@ ioapicwrite(int reg, uint data)
   ioapic->data = data;
 }
 
-void
-ioapicinit(void)
+void ioapicinit(void)
 {
   int i, id, maxintr;
 

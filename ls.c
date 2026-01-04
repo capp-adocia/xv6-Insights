@@ -22,8 +22,7 @@ fmtname(char *path)
   return buf;
 }
 
-void
-ls(char *path)
+void ls(char *path)
 {
   char buf[512], *p;
   int fd;
@@ -70,8 +69,7 @@ ls(char *path)
   close(fd);
 }
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   int i;
 

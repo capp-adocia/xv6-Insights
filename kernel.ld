@@ -34,7 +34,7 @@ SECTIONS
 		PROVIDE(__STABSTR_END__ = .);
 	}
 
-	/* Adjust the address for the data segment to the next page */
+	/* 将数据段的地址调整到下一页 */
 	. = ALIGN(0x1000);
 
 	/* 传统上，Unix 链接器在文本段、数据段和 BSS 段的末尾提供伪符号 etext、edata 和 end。

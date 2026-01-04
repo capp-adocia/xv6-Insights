@@ -39,7 +39,7 @@ struct segdesc {
   uint base_31_24 : 8; // High bits of segment base address
 };
 
-// 正常段
+// 一般的段
 #define SEG(type, base, lim, dpl) (struct segdesc)    \
 { ((lim) >> 12) & 0xffff, (uint)(base) & 0xffff,      \
   ((uint)(base) >> 16) & 0xff, type, 1, dpl, 1,       \
@@ -87,8 +87,8 @@ struct segdesc {
 #define PTXSHIFT        12      // offset of PTX in a linear address
 #define PDXSHIFT        22      // offset of PDX in a linear address
 
-#define PGROUNDUP(sz)  (((sz)+PGSIZE-1) & ~(PGSIZE-1))
-#define PGROUNDDOWN(a) (((a)) & ~(PGSIZE-1))
+#define PGROUNDUP(sz)  (((sz)+PGSIZE-1) & ~(PGSIZE-1)) // 按页上取整用来获取该地址对应的下一个页地址
+#define PGROUNDDOWN(a) (((a)) & ~(PGSIZE-1)) // 按页下取整用来获取该地址对应的当前页地址
 
 // Page table/directory entry flags.
 #define PTE_P           0x001   // Present

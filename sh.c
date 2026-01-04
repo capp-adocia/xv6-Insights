@@ -130,8 +130,7 @@ runcmd(struct cmd *cmd)
   exit();
 }
 
-int
-getcmd(char *buf, int nbuf)
+int getcmd(char *buf, int nbuf)
 {
   printf(2, "$ ");
   memset(buf, 0, nbuf);

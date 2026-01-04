@@ -44,15 +44,13 @@
 volatile uint *lapic;  // Initialized in mp.c
 
 //PAGEBREAK!
-static void
-lapicw(int index, int value)
+static void lapicw(int index, int value)
 {
   lapic[index] = value;
   lapic[ID];  // wait for write to finish, by reading
 }
 
-void
-lapicinit(void)
+void lapicinit(void)
 {
   if(!lapic)
     return;
@@ -60,10 +58,10 @@ lapicinit(void)
   // Enable local APIC; set spurious interrupt vector.
   lapicw(SVR, ENABLE | (T_IRQ0 + IRQ_SPURIOUS));
 
-  // The timer repeatedly counts down at bus frequency
-  // from lapic[TICR] and then issues an interrupt.
-  // If xv6 cared more about precise timekeeping,
-  // TICR would be calibrated using an external time source.
+  // 定时器以总线频率重复计数倒计时
+  // 从 lapic[TICR] 然后触发中断。
+  // 如果 xv6 更关注精确的时间管理，
+  // TICR 将使用外部时间源进行校准。
   lapicw(TDCR, X1);
   lapicw(TIMER, PERIODIC | (T_IRQ0 + IRQ_TIMER));
   lapicw(TICR, 10000000);
@@ -97,8 +95,7 @@ lapicinit(void)
   lapicw(TPR, 0);
 }
 
-int
-lapicid(void)
+int lapicid(void)
 {
   if (!lapic)
     return 0;

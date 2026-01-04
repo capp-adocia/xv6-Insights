@@ -78,7 +78,7 @@ strncpy(char *s, const char *t, int n)
   return os;
 }
 
-// Like strncpy but guaranteed to NUL-terminate.
+// 类似 strncpy，但保证以 NULL 结尾。
 char*
 safestrcpy(char *s, const char *t, int n)
 {

@@ -1,9 +1,8 @@
-# Initial process execs /init.
-# This code runs in user space.
+# 初始化进程 execs /init。
+# 这段代码在用户空间运行。
 
 #include "syscall.h"
 #include "traps.h"
-
 
 # exec(init, argv)
 .globl start
@@ -29,4 +28,3 @@ init:
 argv:
   .long init
   .long 0
-

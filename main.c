@@ -26,19 +26,18 @@ int main(void)
   consoleinit();   // 控制台硬件
   uartinit();      // 串口
   pinit();         // 进程表
-  tvinit();        // 陷阱向量
+  tvinit();        // 陷阱向量(陷阱 = 中断 + 异常 + 系统调用)
   binit();         // 缓冲区缓存
   fileinit();      // 文件表
   ideinit();       // 磁盘
   startothers();   // 启动其他处理器
   kinit2(P2V(4*1024*1024), P2V(PHYSTOP)); // 必须在startothers()之后调用
   userinit();      // 第一个用户进程
-  mpmain();        // 完成本处理器的设置
+  mpmain();        // 完成本处理器的设置，主要是执行调度切换到第一个进程
 }
 
 // 其他 CPU 从 entryother.S 跳转到这里。
-static void
-mpenter(void)
+static void mpenter(void)
 {
   switchkvm();
   seginit();
@@ -46,13 +45,13 @@ mpenter(void)
   mpmain();
 }
 
-// 常见的 CPU 初始化代码。
+// CPU 初始化代码。
 static void mpmain(void)
 {
-  cprintf("cpu%d: starting %d\n", cpuid(), cpuid());
-  idtinit();       // load idt register
-  xchg(&(mycpu()->started), 1); // tell startothers() we're up
-  scheduler();     // start running processes
+  cprintf("cpu%d: starting %d\n", cpuid(), cpuid()); // 打印cpu相关信息
+  idtinit();       // 加载IDT寄存器
+  xchg(&(mycpu()->started), 1); // 告诉 startothers() 我们已经准备好了
+  scheduler();     // start running processes and nerver return
 }
 
 pde_t entrypgdir[];  // For entry.S
