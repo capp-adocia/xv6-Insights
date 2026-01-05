@@ -22,8 +22,7 @@
 #define T_MCHK          18      // machine check
 #define T_SIMDERR       19      // SIMD floating point error
 
-// These are arbitrarily chosen, but with care not to overlap
-// processor defined exceptions or interrupt vectors.
+// 这些是任意选择的，但要小心避免与处理器定义的异常或中断向量重叠。
 #define T_SYSCALL       64      // system call
 #define T_DEFAULT      500      // catchall
 

@@ -14,8 +14,7 @@
 // to a saved program counter, and then the first argument.
 
 // Fetch the int at addr from the current process.
-int
-fetchint(uint addr, int *ip)
+int fetchint(uint addr, int *ip)
 {
   struct proc *curproc = myproc();
 
@@ -28,8 +27,7 @@ fetchint(uint addr, int *ip)
 // Fetch the nul-terminated string at addr from the current process.
 // Doesn't actually copy the string - just sets *pp to point at it.
 // Returns length of string, not including nul.
-int
-fetchstr(uint addr, char **pp)
+int fetchstr(uint addr, char **pp)
 {
   char *s, *ep;
   struct proc *curproc = myproc();
@@ -46,8 +44,7 @@ fetchstr(uint addr, char **pp)
 }
 
 // Fetch the nth 32-bit system call argument.
-int
-argint(int n, int *ip)
+int argint(int n, int *ip)
 {
   return fetchint((myproc()->tf->esp) + 4 + 4*n, ip);
 }
@@ -55,8 +52,7 @@ argint(int n, int *ip)
 // Fetch the nth word-sized system call argument as a pointer
 // to a block of memory of size bytes.  Check that the pointer
 // lies within the process address space.
-int
-argptr(int n, char **pp, int size)
+int argptr(int n, char **pp, int size)
 {
   int i;
   struct proc *curproc = myproc();
@@ -73,8 +69,7 @@ argptr(int n, char **pp, int size)
 // Check that the pointer is valid and the string is nul-terminated.
 // (There is no shared writable memory, so the string can't change
 // between this check and being used by the kernel.)
-int
-argstr(int n, char **pp)
+int argstr(int n, char **pp)
 {
   int addr;
   if(argint(n, &addr) < 0)
@@ -128,8 +123,7 @@ static int (*syscalls[])(void) = {
 [SYS_close]   sys_close,
 };
 
-void
-syscall(void)
+void syscall(void)
 {
   int num;
   struct proc *curproc = myproc();
