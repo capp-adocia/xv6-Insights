@@ -1,4 +1,4 @@
-// Simple PIO-based (non-DMA) IDE driver code.
+// 基于简单PIO（非DMA）的IDE驱动程序代码。
 
 #include "types.h"
 #include "defs.h"
@@ -24,9 +24,9 @@
 #define IDE_CMD_RDMUL 0xc4
 #define IDE_CMD_WRMUL 0xc5
 
-// idequeue points to the buf now being read/written to the disk.
-// idequeue->qnext points to the next buf to be processed.
-// You must hold idelock while manipulating queue.
+// idequeue 指向当前正在读取/写入磁盘的缓冲区。
+// idequeue->qnext 指向下一个要处理的缓冲区。
+// 操作队列时必须持有 idelock。
 
 static struct spinlock idelock;
 static struct buf *idequeue;
@@ -69,7 +69,7 @@ ideinit(void)
   outb(0x1f6, 0xe0 | (0<<4));
 }
 
-// Start the request for b.  Caller must hold idelock.
+// 开始 b 的请求。调用者必须持有 idelock。
 static void
 idestart(struct buf *b)
 {
@@ -100,8 +100,7 @@ idestart(struct buf *b)
 }
 
 // Interrupt handler.
-void
-ideintr(void)
+void ideintr(void)
 {
   struct buf *b;
 
@@ -131,11 +130,10 @@ ideintr(void)
 }
 
 //PAGEBREAK!
-// Sync buf with disk.
-// If B_DIRTY is set, write buf to disk, clear B_DIRTY, set B_VALID.
-// Else if B_VALID is not set, read buf from disk, set B_VALID.
-void
-iderw(struct buf *b)
+// 将缓冲区与磁盘同步。
+// 如果设置了 B_DIRTY，则将缓冲区写入磁盘，清除 B_DIRTY，设置 B_VALID。
+// 否则，如果未设置 B_VALID，则从磁盘读取缓冲区，设置 B_VALID。
+void iderw(struct buf *b)
 {
   struct buf **pp;
 

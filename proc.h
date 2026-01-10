@@ -46,7 +46,7 @@ struct proc {
   struct context *context;     // 在这里调用 swtch() 来运行进程
   void *chan;                  // 如果非零，则在 chan 上睡眠
   int killed;                  // 如果非零，表示已被杀死
-  struct file *ofile[NOFILE];  // 打开的文件
+  struct file *ofile[NOFILE];  // 打开的文件(打开文件表)
   struct inode *cwd;           // 当前目录
   char name[16];               // 进程名称（调试用）
 };

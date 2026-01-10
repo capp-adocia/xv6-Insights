@@ -6,31 +6,25 @@
 #include "fs.h"
 #include "buf.h"
 
-// Simple logging that allows concurrent FS system calls.
+// 简单日志记录，允许并发的文件系统（FS）系统调用。
 //
-// A log transaction contains the updates of multiple FS system
-// calls. The logging system only commits when there are
-// no FS system calls active. Thus there is never
-// any reasoning required about whether a commit might
-// write an uncommitted system call's updates to disk.
+// 一次日志事务包含多个 FS 系统调用的更新。日志系统只有在没有 FS 系统调用活动时才会提交。
+// 因此，永远不需要担心提交会将未提交的系统调用更新写入磁盘。
 //
-// A system call should call begin_op()/end_op() to mark
-// its start and end. Usually begin_op() just increments
-// the count of in-progress FS system calls and returns.
-// But if it thinks the log is close to running out, it
-// sleeps until the last outstanding end_op() commits.
+// 系统调用应调用 begin_op()/end_op() 来标记其开始和结束。通常 begin_op() 只是增加正在进行的 FS 系统调用的计数并返回。
+// 但是，如果它认为日志快满了，它会在最后一个未完成的 end_op() 提交之前进入休眠。
 //
-// The log is a physical re-do log containing disk blocks.
-// The on-disk log format:
-//   header block, containing block #s for block A, B, C, ...
-//   block A
-//   block B
-//   block C
+// 日志是一个包含磁盘块的物理重做日志。
+// 磁盘上的日志格式：
+//   头块，包含块 A、B、C 等的块号
+//   块 A
+//   块 B
+//   块 C
 //   ...
-// Log appends are synchronous.
+// 日志追加是同步的。
 
-// Contents of the header block, used for both the on-disk header block
-// and to keep track in memory of logged block# before commit.
+// 头块的内容，用于磁盘上的头块
+// 并用于在内存中跟踪提交前记录的块号。
 struct logheader {
   int n;
   int block[LOGSIZE];
@@ -121,14 +115,14 @@ recover_from_log(void)
   write_head(); // clear the log
 }
 
-// called at the start of each FS system call.
+// 在每个文件系统系统调用开始时调用。
 void
 begin_op(void)
 {
   acquire(&log.lock);
   while(1){
     if(log.committing){
-      sleep(&log, &log.lock);
+      sleep(&log, &log.lock); // 触发进程调度
     } else if(log.lh.n + (log.outstanding+1)*MAXOPBLOCKS > LOGSIZE){
       // this op might exhaust log space; wait for commit.
       sleep(&log, &log.lock);
@@ -140,10 +134,9 @@ begin_op(void)
   }
 }
 
-// called at the end of each FS system call.
-// commits if this was the last outstanding operation.
-void
-end_op(void)
+// 在每个文件系统系统调用结束时调用。
+// 如果这是最后一个未完成的操作，则提交。
+void end_op(void)
 {
   int do_commit = 0;
 
@@ -155,9 +148,7 @@ end_op(void)
     do_commit = 1;
     log.committing = 1;
   } else {
-    // begin_op() may be waiting for log space,
-    // and decrementing log.outstanding has decreased
-    // the amount of reserved space.
+    // begin_op() 可能正在等待日志空间，而减少 log.outstanding 已经减少了保留空间的数量。
     wakeup(&log);
   }
   release(&log.lock);
@@ -173,7 +164,7 @@ end_op(void)
   }
 }
 
-// Copy modified blocks from cache to log.
+// 将修改过的块从缓存复制到日志。
 static void
 write_log(void)
 {

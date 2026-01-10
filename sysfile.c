@@ -1,7 +1,7 @@
 //
-// File-system system calls.
-// Mostly argument checking, since we don't trust
-// user code, and calls into file.c and fs.c.
+// 文件系统的系统调用。
+// 主要是参数检查，因为我们不信任用户代码，
+// 并调用 file.c 和 fs.c。
 //
 
 #include "types.h"
@@ -16,17 +16,17 @@
 #include "file.h"
 #include "fcntl.h"
 
-// Fetch the nth word-sized system call argument as a file descriptor
-// and return both the descriptor and the corresponding struct file.
-static int
-argfd(int n, int *pfd, struct file **pf)
+// 获取第 n 个字大小的系统调用参数作为文件描述符fd
+// 并返回该描述符及对应的 struct file。
+static int argfd(int n, int *pfd, struct file **pf)
 {
   int fd;
   struct file *f;
 
   if(argint(n, &fd) < 0)
     return -1;
-  if(fd < 0 || fd >= NOFILE || (f=myproc()->ofile[fd]) == 0)
+  // 根据用户传递过来的fd来获取当前cpu上运行进程的打开文件file
+  if(fd < 0 || fd >= NOFILE || (f = myproc()->ofile[fd]) == 0)
     return -1;
   if(pfd)
     *pfd = fd;
@@ -66,20 +66,19 @@ sys_dup(void)
   return fd;
 }
 
-int
-sys_read(void)
+/* 返回实际读取字节数 */
+int sys_read(void)
 {
-  struct file *f;
-  int n;
-  char *p;
-
+  struct file *f; // 内核文件对象（多个进程可共享一个）
+  int n; // 请求读取的字节数
+  char *p; // 用户空间缓冲区地址
+  // 获取用户传递的参数，根据用户的fd找到当前进程的打开表
   if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
     return -1;
-  return fileread(f, p, n);
+  return fileread(f, p, n); // n是要读多少字节，fileread返回实际读取了多少
 }
 
-int
-sys_write(void)
+int sys_write(void)
 {
   struct file *f;
   int n;
@@ -90,8 +89,7 @@ sys_write(void)
   return filewrite(f, p, n);
 }
 
-int
-sys_close(void)
+int sys_close(void)
 {
   int fd;
   struct file *f;
@@ -238,25 +236,27 @@ bad:
   return -1;
 }
 
-static struct inode*
-create(char *path, short type, short major, short minor)
+static struct inode* create(char *path, short type, short major, short minor)
 {
-  struct inode *ip, *dp;
   char name[DIRSIZ];
-
+  struct inode *ip, *dp;
+  // 获取该文件所在目录的inode指针
   if((dp = nameiparent(path, name)) == 0)
     return 0;
   ilock(dp);
 
+  // 根据文件名在目录中查找，如果查到了
+  // 就提前返回inode，这种情况适用于1. open已存在的文件
   if((ip = dirlookup(dp, name, 0)) != 0){
-    iunlockput(dp);
-    ilock(ip);
+    iunlockput(dp); // 释放父目录锁
+    ilock(ip); // 锁住要用的文件
     if(type == T_FILE && ip->type == T_FILE)
       return ip;
     iunlockput(ip);
     return 0;
   }
 
+  // 如果没找到说明可能是2. 以创建方式打开以open不存在的文件
   if((ip = ialloc(dp->dev, type)) == 0)
     panic("create: ialloc");
 
@@ -264,12 +264,13 @@ create(char *path, short type, short major, short minor)
   ip->major = major;
   ip->minor = minor;
   ip->nlink = 1;
-  iupdate(ip);
+  iupdate(ip); // 把内存中的inode写入到日志区
 
+  // 如果类型是目录还需要加入.和..目录项
   if(type == T_DIR){  // Create . and .. entries.
     dp->nlink++;  // for ".."
     iupdate(dp);
-    // No ip->nlink++ for ".": avoid cyclic ref count.
+    // 对 "." 不做 ip->nlink++：避免循环引用计数。
     if(dirlink(ip, ".", ip->inum) < 0 || dirlink(ip, "..", dp->inum) < 0)
       panic("create dots");
   }
@@ -282,8 +283,8 @@ create(char *path, short type, short major, short minor)
   return ip;
 }
 
-int
-sys_open(void)
+/* 返回文件描述符fd */
+int sys_open(void)
 {
   char *path;
   int fd, omode;
@@ -294,14 +295,16 @@ sys_open(void)
     return -1;
 
   begin_op();
-
-  if(omode & O_CREATE){
+  // 如果模式是"打开若不存在则创建"时将会创建一个新文件
+  if(omode & O_CREATE)
+  {
     ip = create(path, T_FILE, 0, 0);
     if(ip == 0){
       end_op();
       return -1;
     }
-  } else {
+  } // 解析路径名
+  else {
     if((ip = namei(path)) == 0){
       end_op();
       return -1;
@@ -314,7 +317,8 @@ sys_open(void)
     }
   }
 
-  if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
+  if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0)
+  {
     if(f)
       fileclose(f);
     iunlockput(ip);
@@ -332,8 +336,7 @@ sys_open(void)
   return fd;
 }
 
-int
-sys_mkdir(void)
+int sys_mkdir(void)
 {
   char *path;
   struct inode *ip;

@@ -11,6 +11,7 @@
 #include "file.h"
 
 struct devsw devsw[NDEV];
+
 struct {
   struct spinlock lock;
   struct file file[NFILE];
@@ -22,8 +23,7 @@ void fileinit(void)
 }
 
 // Allocate a file structure.
-struct file*
-filealloc(void)
+struct file* filealloc(void)
 {
   struct file *f;
 
@@ -92,8 +92,7 @@ filestat(struct file *f, struct stat *st)
 }
 
 // Read from file f.
-int
-fileread(struct file *f, char *addr, int n)
+int fileread(struct file *f, char *addr, int n)
 {
   int r;
 
@@ -103,7 +102,7 @@ fileread(struct file *f, char *addr, int n)
     return piperead(f->pipe, addr, n);
   if(f->type == FD_INODE){
     ilock(f->ip);
-    if((r = readi(f->ip, addr, f->off, n)) > 0)
+    if((r = readi(f->ip, addr, f->off, n)) > 0) // 关键操作
       f->off += r;
     iunlock(f->ip);
     return r;
@@ -123,12 +122,11 @@ filewrite(struct file *f, char *addr, int n)
   if(f->type == FD_PIPE)
     return pipewrite(f->pipe, addr, n);
   if(f->type == FD_INODE){
-    // write a few blocks at a time to avoid exceeding
-    // the maximum log transaction size, including
-    // i-node, indirect block, allocation blocks,
-    // and 2 blocks of slop for non-aligned writes.
-    // this really belongs lower down, since writei()
-    // might be writing a device like the console.
+    // 一次写入几个块以避免超过最大日志事务大小，
+    // 包括i节点、间接块、分配块，
+    // 以及非对齐写入的2个额外块。
+    // 这实际上应该放在更低的位置，因为writei()
+    // 可能正在写入像控制台这样的设备。
     int max = ((MAXOPBLOCKS-1-1-2) / 2) * 512;
     int i = 0;
     while(i < n){

@@ -1,14 +1,12 @@
-// File system implementation.  Five layers:
-//   + Blocks: allocator for raw disk blocks.
-//   + Log: crash recovery for multi-step updates.
-//   + Files: inode allocator, reading, writing, metadata.
-//   + Directories: inode with special contents (list of other inodes!)
-//   + Names: paths like /usr/rtm/xv6/fs.c for convenient naming.
+// 文件系统实现。五个层次：
+//   + 块（Blocks）：原始磁盘块的分配器。
+//   + 日志（Log）：多步骤更新的崩溃恢复。
+//   + 文件（Files）：inode 分配器、读取、写入、元数据管理。
+//   + 目录（Directories）：包含特殊内容的 inode（其他 inode 的列表！）。
+//   + 名称（Names）：像 /usr/rtm/xv6/fs.c 这样的路径，便于命名。
 //
-// This file contains the low-level file system manipulation
-// routines.  The (higher-level) system call implementations
-// are in sysfile.c.
-
+// 本文件包含低级文件系统操作例程。
+// （更高级的）系统调用实现位于 sysfile.c 中。
 #include "types.h"
 #include "defs.h"
 #include "param.h"
@@ -23,8 +21,7 @@
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 static void itrunc(struct inode*);
-// there should be one superblock per disk device, but we run with
-// only one device
+// 每个磁盘设备应该有一个超级块，但我们只使用一个设备
 struct superblock sb; 
 
 // Read the super block.
@@ -188,9 +185,9 @@ iinit(int dev)
 static struct inode* iget(uint dev, uint inum);
 
 //PAGEBREAK!
-// Allocate an inode on device dev.
-// Mark it as allocated by  giving it type type.
-// Returns an unlocked but allocated and referenced inode.
+// 在设备 dev 上分配一个 inode。
+// 将其标记为已分配，并赋予类型 type。
+// 返回一个已分配并被引用但未锁定的 inode。
 struct inode*
 ialloc(uint dev, short type)
 {
@@ -213,10 +210,10 @@ ialloc(uint dev, short type)
   panic("ialloc: no inodes");
 }
 
-// Copy a modified in-memory inode to disk.
-// Must be called after every change to an ip->xxx field
-// that lives on disk, since i-node cache is write-through.
-// Caller must hold ip->lock.
+// 将修改后的内存 inode 复制到磁盘。
+// 必须在对任何存储在磁盘上的 ip->xxx 字段进行修改后调用，
+// 因为 i-node 缓存是写直达的。
+// 调用者必须持有 ip->lock。
 void
 iupdate(struct inode *ip)
 {
@@ -271,8 +268,8 @@ iget(uint dev, uint inum)
   return ip;
 }
 
-// Increment reference count for ip.
-// Returns ip to enable ip = idup(ip1) idiom.
+// 增加 ip 的引用计数。
+// 返回 ip 以支持 ip = idup(ip1) 的用法。
 struct inode*
 idup(struct inode *ip)
 {
@@ -282,10 +279,8 @@ idup(struct inode *ip)
   return ip;
 }
 
-// Lock the given inode.
-// Reads the inode from disk if necessary.
-void
-ilock(struct inode *ip)
+// 如果需要，从磁盘读取inode。
+void ilock(struct inode *ip)
 {
   struct buf *bp;
   struct dinode *dip;
@@ -293,10 +288,10 @@ ilock(struct inode *ip)
   if(ip == 0 || ip->ref < 1)
     panic("ilock");
 
-  acquiresleep(&ip->lock);
+  acquiresleep(&ip->lock); // 关键行
 
   if(ip->valid == 0){
-    bp = bread(ip->dev, IBLOCK(ip->inum, sb));
+    bp = bread(ip->dev, IBLOCK(ip->inum, sb)); // bread去读取这块内容，如果在buffer里就返回指针，不再的话重新读入再返回
     dip = (struct dinode*)bp->data + ip->inum%IPB;
     ip->type = dip->type;
     ip->major = dip->major;
@@ -304,7 +299,7 @@ ilock(struct inode *ip)
     ip->nlink = dip->nlink;
     ip->size = dip->size;
     memmove(ip->addrs, dip->addrs, sizeof(ip->addrs));
-    brelse(bp);
+    brelse(bp); // 把这个块放到lru列表中
     ip->valid = 1;
     if(ip->type == 0)
       panic("ilock: no type");
@@ -447,10 +442,9 @@ stati(struct inode *ip, struct stat *st)
 }
 
 //PAGEBREAK!
-// Read data from inode.
-// Caller must hold ip->lock.
-int
-readi(struct inode *ip, char *dst, uint off, uint n)
+// 从 inode 读取数据。
+// 调用者必须持有 ip->lock。
+int readi(struct inode *ip, char *dst, uint off, uint n)
 {
   uint tot, m;
   struct buf *bp;
@@ -519,8 +513,8 @@ namecmp(const char *s, const char *t)
   return strncmp(s, t, DIRSIZ);
 }
 
-// Look for a directory entry in a directory.
-// If found, set *poff to byte offset of entry.
+// 在目录中查找目录项。
+// 如果找到，将 *poff 设置为条目的字节偏移。
 struct inode*
 dirlookup(struct inode *dp, char *name, uint *poff)
 {
@@ -535,6 +529,7 @@ dirlookup(struct inode *dp, char *name, uint *poff)
       panic("dirlookup read");
     if(de.inum == 0)
       continue;
+    // 检查是否匹配
     if(namecmp(name, de.name) == 0){
       // entry matches path element
       if(poff)
@@ -547,15 +542,14 @@ dirlookup(struct inode *dp, char *name, uint *poff)
   return 0;
 }
 
-// Write a new directory entry (name, inum) into the directory dp.
-int
-dirlink(struct inode *dp, char *name, uint inum)
+// 将一个新的目录项（名称，inum）写入目录 dp。
+int dirlink(struct inode *dp, char *name, uint inum)
 {
   int off;
   struct dirent de;
   struct inode *ip;
 
-  // Check that name is not present.
+  // 检查名称是否存在。
   if((ip = dirlookup(dp, name, 0)) != 0){
     iput(ip);
     return -1;
@@ -580,20 +574,19 @@ dirlink(struct inode *dp, char *name, uint inum)
 //PAGEBREAK!
 // Paths
 
-// Copy the next path element from path into name.
-// Return a pointer to the element following the copied one.
-// The returned path has no leading slashes,
-// so the caller can check *path=='\0' to see if the name is the last one.
-// If no name to remove, return 0.
+// 将路径中的下一个路径元素复制到 name 中。
+// 返回指向被复制元素之后的指针。
+// 返回的路径没有前导斜杠，
+// 所以调用者可以检查 *path=='\0' 来判断该名称是否是最后一个。
+// 如果没有名称可移除，则返回 0。
 //
 // Examples:
 //   skipelem("a/bb/c", name) = "bb/c", setting name = "a"
-//   skipelem("///a//bb", name) = "bb", setting name = "a"
+//   skipelem("//a//bb", name) = "bb", setting name = "a"
 //   skipelem("a", name) = "", setting name = "a"
 //   skipelem("", name) = skipelem("////", name) = 0
 //
-static char*
-skipelem(char *path, char *name)
+static char* skipelem(char *path, char *name)
 {
   char *s;
   int len;
@@ -617,28 +610,27 @@ skipelem(char *path, char *name)
   return path;
 }
 
-// Look up and return the inode for a path name.
-// If parent != 0, return the inode for the parent and copy the final
-// path element into name, which must have room for DIRSIZ bytes.
-// Must be called inside a transaction since it calls iput().
-static struct inode*
-namex(char *path, int nameiparent, char *name)
+// 查找并返回路径名的 inode
+// 如果 parent != 0，则返回父目录的 inode，并将最终的路径元素复制到 name 中，name 必须有足够的空间存放 DIRSIZ 字节。
+// 必须在事务中调用，因为它会调用 iput()。
+static struct inode* namex(char *path, int nameiparent, char *name)
 {
   struct inode *ip, *next;
 
   if(*path == '/')
     ip = iget(ROOTDEV, ROOTINO);
   else
-    ip = idup(myproc()->cwd);
+    ip = idup(myproc()->cwd); // 把当前进程的cwd引用计数器+1
 
-  while((path = skipelem(path, name)) != 0){
+  while((path = skipelem(path, name)) != 0)
+  {
     ilock(ip);
-    if(ip->type != T_DIR){
+    if(ip->type != T_DIR){ // 如果inode类型不是目录
       iunlockput(ip);
       return 0;
     }
     if(nameiparent && *path == '\0'){
-      // Stop one level early.
+      // 提前一级停止。
       iunlock(ip);
       return ip;
     }
@@ -663,8 +655,8 @@ namei(char *path)
   return namex(path, 0, name);
 }
 
-struct inode*
-nameiparent(char *path, char *name)
+// 返回的是不是文件所在的目录
+struct inode* nameiparent(char *path, char *name)
 {
   return namex(path, 1, name);
 }

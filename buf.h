@@ -9,6 +9,6 @@ struct buf {
   struct buf *qnext; // disk queue
   uchar data[BSIZE];
 };
-#define B_VALID 0x2  // buffer has been read from disk
-#define B_DIRTY 0x4  // buffer needs to be written to disk
+#define B_VALID 0x2  // 缓冲区已从磁盘读取
+#define B_DIRTY 0x4  // 缓冲区需要写入磁盘
 

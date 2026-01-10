@@ -43,15 +43,13 @@ int fetchstr(uint addr, char **pp)
   return -1;
 }
 
-// Fetch the nth 32-bit system call argument.
+// 获取第 n 个 32 位系统调用参数。
 int argint(int n, int *ip)
 {
   return fetchint((myproc()->tf->esp) + 4 + 4*n, ip);
 }
 
-// Fetch the nth word-sized system call argument as a pointer
-// to a block of memory of size bytes.  Check that the pointer
-// lies within the process address space.
+// 获取第 n 个字大小的系统调用参数作为指向内存块的指针，内存块大小为 bytes。检查该指针是否位于进程地址空间内。
 int argptr(int n, char **pp, int size)
 {
   int i;

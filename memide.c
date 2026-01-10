@@ -1,5 +1,5 @@
-// Fake IDE disk; stores blocks in memory.
-// Useful for running kernel without scratch disk.
+// 假 IDE 磁盘；在内存中存储数据块。
+// 用于在没有临时磁盘的情况下运行内核。
 
 #include "types.h"
 #include "defs.h"
