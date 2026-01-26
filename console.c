@@ -1,6 +1,6 @@
-// Console input and output.
-// Input is from the keyboard or serial port.
-// Output is written to the screen and serial port.
+// 控制台输入和输出。
+// 输入来自键盘或串口。
+// 输出写入屏幕和串口。
 
 #include "types.h"
 #include "defs.h"

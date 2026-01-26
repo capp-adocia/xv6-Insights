@@ -92,6 +92,7 @@ endif
 
 xv6.img: bootblock kernel
 	dd if=/dev/zero of=xv6.img count=10000
+
 	dd if=bootblock of=xv6.img conv=notrunc
 	dd if=kernel of=xv6.img seek=1 conv=notrunc
 
@@ -159,10 +160,7 @@ _forktest: forktest.o $(ULIB)
 mkfs: mkfs.c fs.h
 	gcc -Werror -g -Wall -o mkfs mkfs.c
 
-# Prevent deletion of intermediate files, e.g. cat.o, after first build, so
-# that disk image changes after first build are persistent until clean.  More
-# details:
-# http://www.gnu.org/software/make/manual/html_node/Chained-Rules.html
+
 .PRECIOUS: %.o
 
 UPROGS=\

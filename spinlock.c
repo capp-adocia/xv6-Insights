@@ -1,4 +1,4 @@
-// Mutual exclusion spin locks.
+// 互斥自旋锁
 
 #include "types.h"
 #include "defs.h"
@@ -32,9 +32,7 @@ acquire(struct spinlock *lk)
   while(xchg(&lk->locked, 1) != 0)
     ;
 
-  // Tell the C compiler and the processor to not move loads or stores
-  // past this point, to ensure that the critical section's memory
-  // references happen after the lock is acquired.
+  // 告诉C编译器和处理器不要把加载或存储操作移到此点之前，以确保关键区的内存访问在获取锁之后发生。
   __sync_synchronize();
 
   // Record info about lock acquisition for debugging.
@@ -96,10 +94,9 @@ holding(struct spinlock *lock)
   return r;
 }
 
-
-// Pushcli/popcli are like cli/sti except that they are matched:
-// it takes two popcli to undo two pushcli.  Also, if interrupts
-// are off, then pushcli, popcli leaves them off.
+// Pushcli/popcli 类似于 cli/sti，不同的是它们是成对使用的：
+// 两次 pushcli 需要两次 popcli 才能撤销。另外，如果中断被关闭，
+// 那么 pushcli 和 popcli 不会改变它们的关闭状态。
 
 void
 pushcli(void)

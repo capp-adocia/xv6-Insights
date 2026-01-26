@@ -5,7 +5,7 @@
 #include <fcntl.h>
 #include <assert.h>
 
-#define stat xv6_stat  // avoid clash with host struct stat
+#define stat xv6_stat // 避免与宿主结构体 stat 冲突
 #include "types.h"
 #include "fs.h"
 #include "stat.h"
@@ -20,7 +20,7 @@
 // Disk layout:
 // [ boot block | sb block | log | inode blocks | free bit map | data blocks ]
 
-int nbitmap = FSSIZE/(BSIZE*8) + 1;
+int nbitmap = FSSIZE/(BPB) + 1;
 int ninodeblocks = NINODES / IPB + 1;
 int nlog = LOGSIZE;
 int nmeta;    // Number of meta blocks (boot, sb, nlog, inode, bitmap)
@@ -31,7 +31,6 @@ struct superblock sb;
 char zeroes[BSIZE];
 uint freeinode = 1;
 uint freeblock;
-
 
 void balloc(int);
 void wsect(uint, void*);
@@ -64,15 +63,13 @@ xint(uint x)
   return y;
 }
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   int i, cc, fd;
   uint rootino, inum, off;
   struct dirent de;
   char buf[BSIZE];
   struct dinode din;
-
 
   static_assert(sizeof(int) == 4, "Integers must be 4 bytes!");
 
@@ -84,8 +81,9 @@ main(int argc, char *argv[])
   assert((BSIZE % sizeof(struct dinode)) == 0);
   assert((BSIZE % sizeof(struct dirent)) == 0);
 
-  fsfd = open(argv[1], O_RDWR|O_CREAT|O_TRUNC, 0666);
-  if(fsfd < 0){
+  fsfd = open(argv[1], O_RDWR | O_CREAT | O_TRUNC, 0666);
+  if(fsfd < 0)
+  {
     perror(argv[1]);
     exit(1);
   }
@@ -107,27 +105,31 @@ main(int argc, char *argv[])
 
   freeblock = nmeta;     // the first free block that we can allocate
 
+  // 遍历每一个磁盘块,
   for(i = 0; i < FSSIZE; i++)
     wsect(i, zeroes);
-
+  // 超级块
   memset(buf, 0, sizeof(buf));
   memmove(buf, &sb, sizeof(sb));
   wsect(1, buf);
-
+  // 分配根目录inode
   rootino = ialloc(T_DIR);
   assert(rootino == ROOTINO);
 
+  // 把目录'.'加入
   bzero(&de, sizeof(de));
-  de.inum = xshort(rootino);
+  de.inum = xshort(rootino); // rootino = 1
   strcpy(de.name, ".");
   iappend(rootino, &de, sizeof(de));
-
+  // 把目录'..'加入
   bzero(&de, sizeof(de));
-  de.inum = xshort(rootino);
+  de.inum = xshort(rootino); // 注意这里..也指向自己表示当前目录其实是一个根目录
   strcpy(de.name, "..");
   iappend(rootino, &de, sizeof(de));
 
-  for(i = 2; i < argc; i++){
+  // 解析后续的参数,将后续的参数路径指向的文件添加入磁盘文件中
+  for(i = 2; i < argc; i++)
+  {
     assert(index(argv[i], '/') == 0);
 
     if((fd = open(argv[i], 0)) < 0){
@@ -135,10 +137,8 @@ main(int argc, char *argv[])
       exit(1);
     }
 
-    // Skip leading _ in name when writing to file system.
-    // The binaries are named _rm, _cat, etc. to keep the
-    // build operating system from trying to execute them
-    // in place of system binaries like rm and cat.
+    // 在写入文件系统时跳过名称开头的下划线 _ 。这些二进制文件被命名为 _rm、_cat 等，以防构建操作系统尝试执行它们，
+    // 而使用系统二进制文件如 rm 和 cat 的位置。
     if(argv[i][0] == '_')
       ++argv[i];
 
@@ -155,7 +155,7 @@ main(int argc, char *argv[])
     close(fd);
   }
 
-  // fix size of root inode dir
+  // 修复根 inode 目录的大小
   rinode(rootino, &din);
   off = xint(din.size);
   off = ((off/BSIZE) + 1) * BSIZE;
@@ -163,14 +163,30 @@ main(int argc, char *argv[])
   winode(rootino, &din);
 
   balloc(freeblock);
+  close(fsfd);
 
   exit(0);
 }
 
 void
-wsect(uint sec, void *buf)
+rsect(uint sec, void *buf)
 {
-  if(lseek(fsfd, sec * BSIZE, 0) != sec * BSIZE){
+    if(lseek(fsfd, sec * BSIZE, 0) != sec * BSIZE)
+    {
+      perror("lseek");
+      exit(1);
+    }
+    if(read(fsfd, buf, BSIZE) != BSIZE)
+    {
+      perror("read");
+      exit(1);
+    }
+}
+// sec 是块号
+void wsect(uint sec, void *buf)
+{
+  if(lseek(fsfd, sec * BSIZE, SEEK_SET) != sec * BSIZE)
+  {
     perror("lseek");
     exit(1);
   }
@@ -180,8 +196,7 @@ wsect(uint sec, void *buf)
   }
 }
 
-void
-winode(uint inum, struct dinode *ip)
+void winode(uint inum, struct dinode *ip)
 {
   char buf[BSIZE];
   uint bn;
@@ -194,8 +209,7 @@ winode(uint inum, struct dinode *ip)
   wsect(bn, buf);
 }
 
-void
-rinode(uint inum, struct dinode *ip)
+void rinode(uint inum, struct dinode *ip)
 {
   char buf[BSIZE];
   uint bn;
@@ -207,8 +221,7 @@ rinode(uint inum, struct dinode *ip)
   *ip = *dip;
 }
 
-void
-rsect(uint sec, void *buf)
+void sect(uint sec, void *buf)
 {
   if(lseek(fsfd, sec * BSIZE, 0) != sec * BSIZE){
     perror("lseek");
@@ -220,8 +233,7 @@ rsect(uint sec, void *buf)
   }
 }
 
-uint
-ialloc(ushort type)
+uint ialloc(ushort type)
 {
   uint inum = freeinode++;
   struct dinode din;
@@ -234,8 +246,7 @@ ialloc(ushort type)
   return inum;
 }
 
-void
-balloc(int used)
+void balloc(int used)
 {
   uchar buf[BSIZE];
   int i;
@@ -252,8 +263,10 @@ balloc(int used)
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 
-void
-iappend(uint inum, void *xp, int n)
+// inum inode号
+// xp 文件指针
+// n 文件大小
+void iappend(uint inum, void *xp, int n)
 {
   char *p = (char*)xp;
   uint fbn, off, n1;
@@ -264,26 +277,34 @@ iappend(uint inum, void *xp, int n)
 
   rinode(inum, &din);
   off = xint(din.size);
-  // printf("append inum %d at off %d sz %d\n", inum, off, n);
-  while(n > 0){
-    fbn = off / BSIZE;
+  // printf("在偏移 %d 处追加 inode %d，大小 %d\n", inum, off, n);
+  while(n > 0)
+  {
+    fbn = off / BSIZE; // 读出文件大小判断一下fbn是否处于直接索引处
     assert(fbn < MAXFILE);
-    if(fbn < NDIRECT){
-      if(xint(din.addrs[fbn]) == 0){
+    if(fbn < NDIRECT)
+    {
+      if(xint(din.addrs[fbn]) == 0) // 如果之前没有分配,则开始分配一个块
+      {
         din.addrs[fbn] = xint(freeblock++);
       }
-      x = xint(din.addrs[fbn]);
-    } else {
-      if(xint(din.addrs[NDIRECT]) == 0){
+      x = xint(din.addrs[fbn]); // 取出块号
+    } 
+    else 
+    {
+      if(xint(din.addrs[NDIRECT]) == 0)
+      {
         din.addrs[NDIRECT] = xint(freeblock++);
       }
       rsect(xint(din.addrs[NDIRECT]), (char*)indirect);
-      if(indirect[fbn - NDIRECT] == 0){
+      if(indirect[fbn - NDIRECT] == 0)
+      {
         indirect[fbn - NDIRECT] = xint(freeblock++);
         wsect(xint(din.addrs[NDIRECT]), (char*)indirect);
       }
       x = xint(indirect[fbn-NDIRECT]);
     }
+
     n1 = min(n, (fbn + 1) * BSIZE - off);
     rsect(x, buf);
     bcopy(p, buf + off - (fbn * BSIZE), n1);
@@ -292,6 +313,7 @@ iappend(uint inum, void *xp, int n)
     off += n1;
     p += n1;
   }
+
   din.size = xint(off);
   winode(inum, &din);
 }

@@ -112,8 +112,7 @@ int fileread(struct file *f, char *addr, int n)
 
 //PAGEBREAK!
 // Write to file f.
-int
-filewrite(struct file *f, char *addr, int n)
+int filewrite(struct file *f, char *addr, int n)
 {
   int r;
 

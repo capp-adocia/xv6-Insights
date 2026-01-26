@@ -104,10 +104,11 @@ void ideintr(void)
 {
   struct buf *b;
 
-  // First queued buffer is the active request.
+  // 第一个排队的缓冲区是当前的请求。
   acquire(&idelock);
 
-  if((b = idequeue) == 0){
+  if((b = idequeue) == 0)
+  {
     release(&idelock);
     return;
   }

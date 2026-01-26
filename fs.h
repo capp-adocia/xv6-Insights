@@ -5,7 +5,7 @@
 #define BSIZE 512  // block size
 
 // 磁盘布局：
-// [ 引导块 | 超级块 | 日志 | inode 块 | 空闲位图 | 数据块]
+// [ 引导块1 | 超级块1 | 日志n | inode 块n | 空闲位图n | 数据块1 ]
 //
 // mkfs 计算超级块并构建初始文件系统。
 // 超级块描述了磁盘布局：
@@ -19,7 +19,7 @@ struct superblock {
   uint bmapstart;    // 第一个空闲映射块的块号
 };
 #define NDIRECT 12
-#define NINDIRECT (BSIZE / sizeof(uint))
+#define NINDIRECT (BSIZE / sizeof(uint)) // 512 / 4 = 128
 #define MAXFILE (NDIRECT + NINDIRECT)
 
 // 磁盘上的 inode 结构体
