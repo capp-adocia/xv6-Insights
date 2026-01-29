@@ -25,9 +25,13 @@
 
 // 头块的内容，用于磁盘上的头块
 // 并用于在内存中跟踪提交前记录的块号。
+/*
+日志区 = 日志头 + 日志数据区
+| logheader:1 | logdata | logdata | ... |
+*/
 struct logheader {
-  int n;
-  int block[LOGSIZE];
+  int n; // 当前事务修改的块数
+  int block[LOGSIZE]; // 每个被修改块的实际磁盘扇区号
 };
 
 struct log {
@@ -44,8 +48,7 @@ struct log log;
 static void recover_from_log(void);
 static void commit();
 
-void
-initlog(int dev)
+void initlog(int dev)
 {
   if (sizeof(struct logheader) >= BSIZE)
     panic("initlog: too big logheader");
@@ -59,12 +62,12 @@ initlog(int dev)
   recover_from_log();
 }
 
-// Copy committed blocks from log to their home location
+// Copy committed blocks from log to their home location(主存)
 static void
 install_trans(void)
 {
   int tail;
-
+  // 从日志数据区读出数据后,写入到指定的数据区域.
   for (tail = 0; tail < log.lh.n; tail++) {
     struct buf *lbuf = bread(log.dev, log.start+tail+1); // read log block
     struct buf *dbuf = bread(log.dev, log.lh.block[tail]); // read dst
@@ -89,20 +92,18 @@ read_head(void)
   brelse(buf);
 }
 
-// Write in-memory log header to disk.
-// This is the true point at which the
-// current transaction commits.
+// 将内存中的日志头写入磁盘。这是当前事务真正提交的时刻。
 static void
 write_head(void)
 {
-  struct buf *buf = bread(log.dev, log.start);
+  struct buf *buf = bread(log.dev, log.start); // 从日志读出数据给buf
   struct logheader *hb = (struct logheader *) (buf->data);
   int i;
-  hb->n = log.lh.n;
+  hb->n = log.lh.n; // 设置块号
   for (i = 0; i < log.lh.n; i++) {
-    hb->block[i] = log.lh.block[i];
+    hb->block[i] = log.lh.block[i]; // 将日志区拷贝到hd块
   }
-  bwrite(buf);
+  bwrite(buf); // 重新写入
   brelse(buf);
 }
 
@@ -170,8 +171,9 @@ write_log(void)
 {
   int tail;
 
-  for (tail = 0; tail < log.lh.n; tail++) {
-    struct buf *to = bread(log.dev, log.start+tail+1); // log block
+  for (tail = 0; tail < log.lh.n; tail++)
+  {
+    struct buf *to = bread(log.dev, log.start+tail+1); // log block 这里加1是为了越过日志区头
     struct buf *from = bread(log.dev, log.lh.block[tail]); // cache block
     memmove(to->data, from->data, BSIZE);
     bwrite(to);  // write the log
@@ -184,21 +186,24 @@ static void
 commit()
 {
   if (log.lh.n > 0) {
-    write_log();     // Write modified blocks from cache to log
-    write_head();    // Write header to disk -- the real commit
+    // 将修改写入日志区
+    write_log();     // 将数据写入到log的数据区
+    write_head();    // 修改log的头区域,当头区域n被标记大于0时意味着可以该事务已激活
+    // 将修改写回实际位置
     install_trans(); // Now install writes to home locations
+    // 清理日志
     log.lh.n = 0;
     write_head();    // Erase the transaction from the log
   }
 }
 
-// Caller has modified b->data and is done with the buffer.
-// Record the block number and pin in the cache with B_DIRTY.
-// commit()/write_log() will do the disk write.
+// 调用者已修改 b->data 并完成对缓冲区的操作。
+// 使用 B_DIRTY 将块号记录到缓存并固定。
+// commit()/write_log() 会执行磁盘写入。
 //
-// log_write() replaces bwrite(); a typical use is:
+// log_write() 替代了 bwrite()；一个典型的使用方式是：
 //   bp = bread(...)
-//   modify bp->data[]
+//   修改 bp->data[]
 //   log_write(bp)
 //   brelse(bp)
 void

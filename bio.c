@@ -27,8 +27,8 @@ struct {
   struct spinlock lock;
   struct buf buf[NBUF];
 
-// 所有缓冲区的链表，通过 prev/next 链接。
-// head.next 是最近使用的缓冲区。
+  // 所有缓冲区的链表，通过 prev/next 链接。
+  // head.next 是最近使用的缓冲区。
   struct buf head;
 } bcache;
 
@@ -110,8 +110,8 @@ void bwrite(struct buf *b)
   iderw(b); // 这里是真正的写入磁盘
 }
 
-// Release a locked buffer.
-// Move to the head of the MRU list.
+// 释放已锁定的缓冲区。
+// 移动到 MRU 列表的头部。
 void brelse(struct buf *b)
 {
   if(!holdingsleep(&b->lock))

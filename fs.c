@@ -270,8 +270,7 @@ iget(uint dev, uint inum)
 
 // 增加 ip 的引用计数。
 // 返回 ip 以支持 ip = idup(ip1) 的用法。
-struct inode*
-idup(struct inode *ip)
+struct inode* idup(struct inode *ip)
 {
   acquire(&icache.lock);
   ip->ref++;
@@ -288,7 +287,7 @@ void ilock(struct inode *ip)
   if(ip == 0 || ip->ref < 1)
     panic("ilock");
 
-  acquiresleep(&ip->lock); // 关键行
+  acquiresleep(&ip->lock);
 
   if(ip->valid == 0){
     bp = bread(ip->dev, IBLOCK(ip->inum, sb)); // bread去读取这块内容，如果在buffer里就返回指针，不再的话重新读入再返回
@@ -364,8 +363,7 @@ iunlockput(struct inode *ip)
 
 // Return the disk block address of the nth block in inode ip.
 // If there is no such block, bmap allocates one.
-static uint
-bmap(struct inode *ip, uint bn)
+static uint bmap(struct inode *ip, uint bn)
 {
   uint addr, *a;
   struct buf *bp;

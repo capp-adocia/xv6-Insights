@@ -10,8 +10,7 @@
 #include "spinlock.h"
 #include "sleeplock.h"
 
-void
-initsleeplock(struct sleeplock *lk, char *name)
+void initsleeplock(struct sleeplock *lk, char *name)
 {
   initlock(&lk->lk, "sleep lock");
   lk->name = name;
@@ -19,20 +18,18 @@ initsleeplock(struct sleeplock *lk, char *name)
   lk->pid = 0;
 }
 
-void
-acquiresleep(struct sleeplock *lk)
+void acquiresleep(struct sleeplock *lk)
 {
   acquire(&lk->lk); // 先用自旋锁保护一下
   while (lk->locked) {
-    sleep(lk, &lk->lk);
+    sleep(lk, &lk->lk); // 进程让出cpu
   }
   lk->locked = 1;
   lk->pid = myproc()->pid;
   release(&lk->lk);
 }
 
-void
-releasesleep(struct sleeplock *lk)
+void releasesleep(struct sleeplock *lk)
 {
   acquire(&lk->lk);
   lk->locked = 0;
@@ -41,8 +38,7 @@ releasesleep(struct sleeplock *lk)
   release(&lk->lk);
 }
 
-int
-holdingsleep(struct sleeplock *lk)
+int holdingsleep(struct sleeplock *lk)
 {
   int r;
   
@@ -51,6 +47,3 @@ holdingsleep(struct sleeplock *lk)
   release(&lk->lk);
   return r;
 }
-
-
-

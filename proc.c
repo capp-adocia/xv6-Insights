@@ -27,7 +27,7 @@ void pinit(void)
 
 // 必须在禁用中断的情况下调用
 int cpuid() {
-  return mycpu()-cpus;
+  return mycpu() - cpus;
 }
 
 // 必须在禁用中断的情况下调用，以避免在读取 lapicid 和执行循环之间调用者被重新调度。
@@ -321,11 +321,12 @@ void scheduler(void)
 
     // 遍历进程表，寻找要运行的进程。
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    {
       if(p->state != RUNNABLE) // 找出谁是就绪状态
         {continue;}
-        // 切换到选定的进程。释放 ptable.lock 并在返回我们之前
-        // 重新获取它是该进程的职责。
+      // 切换到选定的进程。释放 ptable.lock 并在返回我们之前
+      // 重新获取它是该进程的职责。
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
@@ -342,13 +343,9 @@ void scheduler(void)
   }
 }
 
-// Enter scheduler.  Must hold only ptable.lock
-// and have changed proc->state. Saves and restores
-// intena because intena is a property of this
-// kernel thread, not this CPU. It should
-// be proc->intena and proc->ncli, but that would
-// break in the few places where a lock is held but
-// there's no process.
+// 进入调度器。必须只持有 ptable.lock 并且已更改 proc->state。保存并恢复intena，
+// 因为 intena 是这个内核线程的属性，而不是这个 CPU 的属性。
+// 它应该是 proc->intena 和 proc->ncli，但在少数持有锁但没有进程的地方会出问题。
 void sched(void)
 {
   int intena;
@@ -423,8 +420,7 @@ void sleep(void *chan, struct spinlock *lk)
   p->state = SLEEPING;
 
   sched();
-
-  // Tidy up.
+  // 如果被唤醒了就重新获得锁
   p->chan = 0;
 
   // Reacquire original lock.

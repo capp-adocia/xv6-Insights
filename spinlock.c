@@ -21,8 +21,7 @@ initlock(struct spinlock *lk, char *name)
 // Loops (spins) until the lock is acquired.
 // Holding a lock for a long time may cause
 // other CPUs to waste time spinning to acquire it.
-void
-acquire(struct spinlock *lk)
+void acquire(struct spinlock *lk)
 {
   pushcli(); // disable interrupts to avoid deadlock.
   if(holding(lk))
@@ -35,7 +34,7 @@ acquire(struct spinlock *lk)
   // 告诉C编译器和处理器不要把加载或存储操作移到此点之前，以确保关键区的内存访问在获取锁之后发生。
   __sync_synchronize();
 
-  // Record info about lock acquisition for debugging.
+  // 记录有关锁获取的信息以便调试。
   lk->cpu = mycpu();
   getcallerpcs(&lk, lk->pcs);
 }
@@ -57,9 +56,8 @@ release(struct spinlock *lk)
   // stores; __sync_synchronize() tells them both not to.
   __sync_synchronize();
 
-  // Release the lock, equivalent to lk->locked = 0.
-  // This code can't use a C assignment, since it might
-  // not be atomic. A real OS would use C atomics here.
+  // 释放锁，相当于 lk->locked = 0。  
+  // 这段代码不能使用 C 的赋值，因为它可能不是原子的。真正的操作系统在这里会使用 C 原子操作。
   asm volatile("movl $0, %0" : "+m" (lk->locked) : );
 
   popcli();
@@ -84,8 +82,7 @@ getcallerpcs(void *v, uint pcs[])
 }
 
 // Check whether this cpu is holding the lock.
-int
-holding(struct spinlock *lock)
+int holding(struct spinlock *lock)
 {
   int r;
   pushcli();
@@ -98,20 +95,18 @@ holding(struct spinlock *lock)
 // 两次 pushcli 需要两次 popcli 才能撤销。另外，如果中断被关闭，
 // 那么 pushcli 和 popcli 不会改变它们的关闭状态。
 
-void
-pushcli(void)
+void pushcli(void)
 {
   int eflags;
 
   eflags = readeflags();
-  cli();
+  cli(); // 关中断
   if(mycpu()->ncli == 0)
     mycpu()->intena = eflags & FL_IF;
   mycpu()->ncli += 1;
 }
 
-void
-popcli(void)
+void popcli(void)
 {
   if(readeflags()&FL_IF)
     panic("popcli - interruptible");

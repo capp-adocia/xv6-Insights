@@ -34,9 +34,8 @@ static struct buf *idequeue;
 static int havedisk1;
 static void idestart(struct buf*);
 
-// Wait for IDE disk to become ready.
-static int
-idewait(int checkerr)
+// 请等待 IDE 磁盘准备就绪。
+static int idewait(int checkerr)
 {
   int r;
 
@@ -47,8 +46,7 @@ idewait(int checkerr)
   return 0;
 }
 
-void
-ideinit(void)
+void ideinit(void)
 {
   int i;
 
@@ -56,7 +54,7 @@ ideinit(void)
   ioapicenable(IRQ_IDE, ncpu - 1);
   idewait(0);
 
-  // Check if disk 1 is present
+  // 检查第二磁盘是否存在
   outb(0x1f6, 0xe0 | (1<<4));
   for(i=0; i<1000; i++){
     if(inb(0x1f7) != 0){
@@ -64,14 +62,13 @@ ideinit(void)
       break;
     }
   }
-
+  
   // Switch back to disk 0.
   outb(0x1f6, 0xe0 | (0<<4));
 }
 
 // 开始 b 的请求。调用者必须持有 idelock。
-static void
-idestart(struct buf *b)
+static void idestart(struct buf *b)
 {
   if(b == 0)
     panic("idestart");

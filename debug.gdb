@@ -3,6 +3,7 @@ set architecture i386
 target remote localhost:26000
 
 file kernel
+break ideinit
 break scheduler
 
 set disassembly-flavor intel
